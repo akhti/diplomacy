@@ -18,7 +18,7 @@
 from typing import Any, Sequence, Tuple
 import numpy as np
 
-from diplomacy.environment import observation_utils as utils
+from dm_diplomacy.environment import observation_utils as utils
 
 
 class Policy:

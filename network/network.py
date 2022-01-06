@@ -37,11 +37,11 @@ import jax.numpy as jnp
 import numpy as np
 import tree
 
-from diplomacy.environment import action_utils
-from diplomacy.environment import observation_transformation
-from diplomacy.environment import observation_utils as utils
-from diplomacy.environment import province_order
-from diplomacy.environment import tree_utils
+from dm_diplomacy.environment import action_utils
+from dm_diplomacy.environment import observation_transformation
+from dm_diplomacy.environment import observation_utils as utils
+from dm_diplomacy.environment import province_order
+from dm_diplomacy.environment import tree_utils
 
 
 def normalize_adjacency(adjacency: np.ndarray) -> np.ndarray:

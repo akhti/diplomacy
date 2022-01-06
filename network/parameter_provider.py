@@ -25,8 +25,8 @@ import jax.numpy as jnp
 import numpy as np
 import tree
 
-from diplomacy.environment import action_utils
-from diplomacy.environment import tree_utils
+from dm_diplomacy.environment import action_utils
+from dm_diplomacy.environment import tree_utils
 
 
 def apply_unbatched(f, *args, **kwargs):
