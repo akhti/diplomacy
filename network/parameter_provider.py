@@ -118,17 +118,26 @@ class SequenceNetworkHandler:
         network_config, subkey
     )
 
+    self._parameter_provider = parameter_provider
+    self._params = None
+    self._state = None
+    self._step_counter = -1
+
+    self._network_cls = network_cls
+    self._network_config = network_config
+    self._init_network()
+
+  def _init_network(self):
     def transform(fn_name, static_argnums=()):
 
       def fwd(*args, **kwargs):
-        net = network_cls(**network_config)
+        net = self._network_cls(**self._network_config)
         fn = getattr(net, fn_name)
         return fn(*args, **kwargs)
 
       apply = hk.transform_with_state(fwd).apply
       return jax.jit(apply, static_argnums=static_argnums)
 
-    self._parameter_provider = parameter_provider
     # The inference method of our Network does not modify its arguments, Jax can
     # exploit this information when jitting this method to make it more
     # efficient. Network.inference takes 4 arguments.
@@ -137,9 +146,19 @@ class SequenceNetworkHandler:
     self._network_initial_inference = transform("initial_inference")
     self._network_step_inference = transform("step_inference")
     self._network_loss_info = transform("loss_info")
-    self._params = None
-    self._state = None
-    self._step_counter = -1
+
+  def __getstate__(self):
+    state = self.__dict__.copy()
+    del state["_network_inference"]
+    del state["_network_shared_rep"]
+    del state["_network_initial_inference"]
+    del state["_network_step_inference"]
+    del state["_network_loss_info"]
+    return state
+
+  def __setstate__(self, state):
+    self.__dict__.update(state)
+    self._init_network()
 
   def reset(self):
     if self._parameter_provider:
