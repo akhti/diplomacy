@@ -156,7 +156,7 @@ class SequenceNetworkHandler:
     del state["_network_loss_info"]
     return state
 
-  def __settate__(self, state):
+  def __setstate__(self, state):
     self.__dict__.update(state)
     self._init_network()
 
