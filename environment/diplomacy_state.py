@@ -298,8 +298,8 @@ def _encode_board(game: pydipcc.Game) -> np.ndarray:
         LOC_MAPPINGS = {"ECH": "ENG", "GOB": "BOT", "GOL": "LYO"}
         return LOC_MAPPINGS.get(loc[:3], loc[:3]) + loc[3:]
 
-    if province2can_remove:
-        print(phase_data["builds"], province2can_remove)
+    # if province2can_remove:
+    #     print(phase_data["builds"], province2can_remove)
 
     # Write into an array
     provinces_id_pairs = list(
@@ -346,9 +346,9 @@ def _encode_board(game: pydipcc.Game) -> np.ndarray:
         board[pid, offset + local_offset] = 1
     offset += 3
 
-    for province_base, pid in baseprovinces_id_pairs:
-        if province_base in province2retreat_unit_owner:
-            local_offset = POWERS.index(province2retreat_unit_owner[province_base])
+    for province, pid in provinces_id_pairs:
+        if province in province2retreat_unit_owner:
+            local_offset = POWERS.index(province2retreat_unit_owner[province])
         else:
             local_offset = 7
         board[pid, offset + local_offset] = 1
