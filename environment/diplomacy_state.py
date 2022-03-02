@@ -28,6 +28,8 @@ from dm_diplomacy.environment import mila_actions
 from dm_diplomacy.environment import province_order
 from fairdiplomacy.models.dipnet.order_vocabulary import get_order_vocabulary
 
+HOME_CENTERS = {k: set(v) for k, v in pydipcc.Game().get_state()["centers"].items()}
+
 
 ADJ_MATRIX = np.array(
     [
@@ -173,11 +175,9 @@ class PydipccDiplomacyState(DiplomacyState):
     def legal_actions(self) -> Sequence[Sequence[int]]:
         season = _encode_season_from_str(self.game.phase)
         per_power_order_ids = []
-        # print(season)
         for order_strs in _get_possible_order_per_power(self.game):
             power_order_ids = [
-                mila_actions.mila_action_to_action(order, season)
-                for order in order_strs
+                mila_actions.mila_action_to_action(order, season) for order in order_strs
             ]
             # if self.game.current_short_phase == "F1901M":
             #     print(order_strs)
@@ -198,8 +198,7 @@ class PydipccDiplomacyState(DiplomacyState):
             orders = []
             for order_id in order_ids:
                 order_strs = (
-                    frozenset(mila_actions.action_to_mila_actions(order_id))
-                    & possible_order_strs
+                    frozenset(mila_actions.action_to_mila_actions(order_id)) & possible_order_strs
                 )
                 assert len(order_strs) == 1, order_strs
                 orders.append(list(order_strs)[0])
@@ -273,7 +272,10 @@ def _encode_board(game: pydipcc.Game) -> np.ndarray:
     province2can_remove = {}
     for power, build_data in phase_data["builds"].items():
         if build_data["count"] > 0:
-            for loc in build_data["homes"]:
+            buildable_centers = (HOME_CENTERS[power] & set(phase_data["centers"][power])) - set(
+                unit.split()[1].split("/")[0] for unit in phase_data["units"][power]
+            )
+            for loc in buildable_centers:
                 province2can_builld[loc] = power
         elif build_data["count"] < 0:
             for unit in phase_data["units"][power]:
@@ -340,9 +342,7 @@ def _encode_board(game: pydipcc.Game) -> np.ndarray:
     offset += 1
 
     for province_base, pid in baseprovinces_id_pairs:
-        local_offset = {"A": 0, "F": 1, None: 2}[
-            province2retreat_unit.get(province_base)
-        ]
+        local_offset = {"A": 0, "F": 1, None: 2}[province2retreat_unit.get(province_base)]
         board[pid, offset + local_offset] = 1
     offset += 3
 
@@ -377,9 +377,20 @@ def _encode_board(game: pydipcc.Game) -> np.ndarray:
 
 def _encode_build_numbers(game: pydipcc.Game) -> List[int]:
     assert not game.is_game_done
+    # Warning! This function is full of hacks.
+
     if game.phase_type == "A":
         phase_data = game.get_phase_data().state
-        numbers = [phase_data["builds"][power]["count"] for power in POWERS]
+        occupied_locations = frozenset(
+            unit.split()[1].split("/")[0]
+            for units in phase_data["units"].values()
+            for unit in units
+        )
+        numbers = []
+        for power in POWERS:
+            num_builds = phase_data["builds"][power]["count"]
+            empty_homes = set(phase_data["homes"][power]).difference(occupied_locations)
+            numbers.append(min(num_builds, len(empty_homes)))
     else:
         # So, this is a weird thing. In non-adjustment phases we use retreats
         # from the last adjustment phase.
@@ -396,9 +407,7 @@ def _encode_last_actions(game: pydipcc.Game) -> List:
     history = game.get_phase_history()
     if not history:
         return []
-    season = _encode_season_from_str(
-        game.rolled_back_to_phase_start(history[-1].name).phase
-    )
+    season = _encode_season_from_str(game.rolled_back_to_phase_start(history[-1].name).phase)
     order_ids = []
     for orders in history[-1].orders.values():
         for order in orders:
