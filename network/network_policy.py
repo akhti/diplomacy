@@ -45,7 +45,7 @@ class Policy:
 
   def actions(
       self, slots_list: Sequence[int], observation: utils.Observation,
-      legal_actions: Sequence[np.ndarray]
+      legal_actions: Sequence[Sequence[int]]
   ) -> Tuple[Sequence[Sequence[int]], Any]:
     """Produce a list of lists of actions.
 
